@@ -120,9 +120,6 @@ def add_padding(img, path):
     
     # add the padding
     padded = cv.copyMakeBorder(img, pad, pad, pad, pad, cv.BORDER_CONSTANT, value=[255, 255, 255])
-    
-    # save the warped image
-    cv.imwrite(path, padded)
 
     return padded
 
