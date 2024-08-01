@@ -17,7 +17,7 @@ def grayscale(img):
 import cv2 as cv
 
 # Threshold the image
-def threshold(img, threshold_value=128):
+def threshold(img, threshold_value=100):
     # For example, using a threshold value of 128
     _, thresh = cv.threshold(img, threshold_value, 255, cv.THRESH_BINARY)
 
@@ -62,6 +62,11 @@ def perspective(img, path):
         if area > largest_area:
             largest = rect
             largest_area = area
+
+    #DRAW THE RECTANGLE
+    cv.drawContours(fresh, [largest], -1, (0, 255, 0), 3)
+    cv.imshow('image', fresh)
+    cv.waitKey(0)
 
     # perspective transform to the largest rectangle
     if largest is not None:
@@ -191,6 +196,10 @@ def process(path):
 
     # Find the contours and apply perspective transform
     img = perspective(img, path)
+
+    #FIX PERSPECTIVE
+    cv.imshow('image', img)
+    cv.waitKey(0)
 
     # Add padding to the image
     img = add_padding(img, path)
