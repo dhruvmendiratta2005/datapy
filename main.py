@@ -29,7 +29,6 @@ if num_pages > 0:
 else:
     sys.exit(1)
 
-breakpoint()
 #--------------
 # PROCESSING TABLES IN THE IMAGE
 #--------------
