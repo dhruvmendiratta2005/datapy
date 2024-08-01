@@ -170,6 +170,9 @@ def erode_lines(img):
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (2, 2))
     combined = cv.dilate(combined, kernel, iterations=5)
 
+    cv.imshow("Table", combined)
+    cv.waitKey(0)
+
     #subtract the lines from the image
     combined = cv.subtract(img, combined)
 
@@ -222,6 +225,16 @@ def find_words(img, path):
 
     return fresh
 
+#get_mean_height_of_bounding_boxes
+def get_mean_height_of_bounding_boxes(bounding_boxes):
+    heights = []
+    for x, y, w, h in bounding_boxes:
+        heights.append(h)
+    return np.mean(heights)
+
+
+
+
 # Process the image
 def process(path):
 
@@ -237,6 +250,9 @@ def process(path):
     # Invert the image
     img = invert(img)
 
+    cv.imshow("Processed Image", img)
+    cv.waitKey(0)
+
     # Dilate the image
     img = dilate(img)
 
@@ -246,12 +262,16 @@ def process(path):
     # Add padding to the image
     img = add_padding(img, path)
 
+    cv.imshow("Processed Perspective", img)
+    cv.waitKey(0)
+
     # Erode the vertical lines
     img = erode_lines(img)
 
     # Dilate the words
     img = dilate_words(img)
-
+    cv.imshow("Processed Words", img)
+    cv.waitKey(0)
     # Find the words
     img = find_words(img, path)
 
