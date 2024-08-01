@@ -111,7 +111,7 @@ def convert_pdf_to_csv(pdf_path, csv_path):
         print(f"Error saving CSV file: {e}")
 
 # Define the path to the PDF file and the output CSV file
-pdf_path = "D:\sample file 2table.pdf"
+pdf_path = "tests\sample file 2table.pdf"
 csv_path = "D:\output_file.csv"
 
 convert_pdf_to_csv(pdf_path, csv_path)
