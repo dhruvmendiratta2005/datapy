@@ -32,7 +32,11 @@ else:
 # Process every image in the folder
 log.log("Processing images", "info")
 
+processed = []
 #get the number of pages in the pdf
 for i in range(num_pages):
     log.log("Processing page "+str(i+1), "info")
-    proc.process("temp/"+str(i)+".jpg")
+    processed.append(proc.process("temp/"+str(i)+".jpg"))
+    log.log("Page "+str(i+1)+" processed successfully", "success")
+
+log.log("Processed images: "+str(len(processed)), "info")

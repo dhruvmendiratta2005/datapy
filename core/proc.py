@@ -9,12 +9,6 @@ def ppath(path):
     path = ".".join(path)
     return path
 
-def unppath(path):
-    path = path.split(".")
-    path [-2] = path[-2][:-1]
-    path = ".".join(path)
-    return path
-
 #Grayscale the image
 def grayscale(img):
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
@@ -210,5 +204,4 @@ def process(path):
 
     cv.imwrite(ppath(path), img)
 
-
-    return img
+    return ppath(path)
