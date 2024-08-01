@@ -1,6 +1,5 @@
 import cv2 as cv
 import numpy as np
-import subprocess
 from modules import log
 
 def ppath(path):
@@ -198,9 +197,6 @@ def process(path):
 
     # Add padding to the image
     img = add_padding(img, path)
-
-    # Erode the vertical lines
-    img = erode_lines(img)
 
     cv.imwrite(ppath(path), img)
 

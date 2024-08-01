@@ -3,7 +3,7 @@ from pdf2image import convert_from_path
 from modules import log
 import os
 
-def pdf_to_image(pdf_path):
+def pdf_to_images(pdf_path):
 	
 	# convert pdf to image
 	try:
@@ -31,4 +31,4 @@ def pdf_to_image(pdf_path):
 		print(e)
 		return [0, False]
 	
-	return [len(images), True]
+	return len(images)
