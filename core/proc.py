@@ -1,4 +1,6 @@
 import cv2 as cv
+import numpy as np
+from modules import log
 
 def ppath(path):
     path = path.split(".")
@@ -6,66 +8,255 @@ def ppath(path):
     path = ".".join(path)
     return path
 
+def unppath(path):
+    path = path.split(".")
+    path [-2] = path[-2][:-1]
+    path = ".".join(path)
+    return path
+
 #Grayscale the image
-def grayscale(path):
-    img = cv.imread(path)
+def grayscale(img):
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
-    #save the image
-    path = ppath(path)
-
-    cv.imwrite(path, gray)
+    return gray
 
 import cv2 as cv
 
 # Threshold the image
-def threshold(path):
-    # Read the image
-    img = cv.imread(path)
-
-    # Use a different thresholding method
-    # You can try a fixed threshold value instead of Otsu's method
+def threshold(img, threshold_value=128):
     # For example, using a threshold value of 128
-    threshold_value = 128
     _, thresh = cv.threshold(img, threshold_value, 255, cv.THRESH_BINARY)
 
-    # Save the thresholded image
-    cv.imwrite(path, thresh)
+    return thresh
 
 # Invert the image
-def invert(path):
-    # Read the image
-    img = cv.imread(path)
-
+def invert(img):
     # Invert the image
     inverted = cv.bitwise_not(img)
 
-    # Save the inverted image
-    cv.imwrite(path, inverted)
+    return inverted
 
 #Here we are going to make all the lines and any shapes in the image thicker. This will help us to correctly identify the “contours” and hopefully the “contour” that makes up the largest box. We are hoping that the largest box is the table.
-def dilate(path):
-    # Read the image
-    img = cv.imread(path)
-
+def dilate(img):
     # Create a kernel
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (3, 3))
 
     # Dilate the image
     dilated = cv.dilate(img, kernel)
 
-    # Save the dilated image with a prefix
-    cv.imwrite(path, dilated)
+    return dilated
+
+# Find the contours
+def perspective(img, path):
+    fresh = cv.imread(path)
+    # Find the contours
+    contours, _ = cv.findContours(img, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    
+    # filter out the contours that are not rectangles
+    rects = []
+    for contour in contours:
+        peri = cv.arcLength(contour, True)
+        approx = cv.approxPolyDP(contour, 0.02 * peri, True)
+        if len(approx) == 4:
+            rects.append(approx)
+
+    # find the largest rectangle
+    largest = None
+    largest_area = 0
+    for rect in rects:
+        area = cv.contourArea(rect)
+        if area > largest_area:
+            largest = rect
+            largest_area = area
+
+    # perspective transform to the largest rectangle
+    if largest is not None:
+        # get the points of the rectangle
+        pts = largest.reshape(4, 2)
+        rect = np.zeros((4, 2), dtype="float32")
+        
+        # the top-left point has the smallest sum
+        # the bottom-right point has the largest sum
+        s = pts.sum(axis=1)
+        rect[0] = pts[np.argmin(s)]
+        rect[2] = pts[np.argmax(s)]
+        
+        # the top-right point has the smallest difference
+        # the bottom-left point has the largest difference
+        diff = np.diff(pts, axis=1)
+        rect[1] = pts[np.argmin(diff)]
+        rect[3] = pts[np.argmax(diff)]
+        
+        # get the width and height of the rectangle
+        (tl, tr, br, bl) = rect
+        widthA = np.sqrt(((br[0] - bl[0]) ** 2) + ((br[1] - bl[1]) ** 2))
+        widthB = np.sqrt(((tr[0] - tl[0]) ** 2) + ((tr[1] - tl[1]) ** 2))
+        maxWidth = max(int(widthA), int(widthB))
+        
+        heightA = np.sqrt(((tr[0] - br[0]) ** 2) + ((tr[1] - br[1]) ** 2))
+        heightB = np.sqrt(((tl[0] - bl[0]) ** 2) + ((tl[1] - bl[1]) ** 2))
+        maxHeight = max(int(heightA), int(heightB))
+        
+        # get the destination points
+        dst = np.array([
+            [0, 0],
+            [maxWidth - 1, 0],
+            [maxWidth - 1, maxHeight - 1],
+            [0, maxHeight - 1]], dtype="float32")
+        
+        # get the perspective transform matrix
+        M = cv.getPerspectiveTransform(rect, dst)
+        
+        # warp the image
+        warped = cv.warpPerspective(fresh, M, (maxWidth, maxHeight))
+        
+        # return the warped image
+        return warped
+    else:
+        log.log("No rectangle found", "warning")
+        return fresh
+    
+# add padding to the image (10 %)
+def add_padding(img, path):
+    # get the dimensions of the image
+    h, w = img.shape[:2]
+    
+    # calculate the padding
+    pad = int(0.1 * h)
+    
+    # add the padding
+    padded = cv.copyMakeBorder(img, pad, pad, pad, pad, cv.BORDER_CONSTANT, value=[255, 255, 255])
+    
+    # save the warped image
+    cv.imwrite(path, padded)
+
+    return padded
+
+def erode_horizontal_lines(img):
+
+    ver = np.array([[1],
+            [1],
+            [1],
+            [1],
+            [1],
+            [1],
+            [1]])
+    
+    eroded = cv.erode(img, ver, iterations=10)
+    
+    return eroded
+
+def erode_vertical_lines(img):
+    # Create a vertical kernel
+    kernel_size = (1, 7)  # Adjust the kernel size as needed
+    kernel = np.ones(kernel_size, np.uint8)
+
+    # Perform erosion
+    eroded = cv.erode(img, kernel, iterations=10)  # Adjust the number of iterations as needed
+
+    return eroded
+
+def erode_lines(img):
+    img = grayscale(img)
+    img = threshold(img)
+    img = invert(img)
+
+    hori = erode_horizontal_lines(img)
+    vert = erode_vertical_lines(img)
+
+    combined = cv.add(hori, vert)
+
+    #dilate_combined_image_to_make_lines_thicker
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (2, 2))
+    combined = cv.dilate(combined, kernel, iterations=5)
+
+    #subtract the lines from the image
+    combined = cv.subtract(img, combined)
+
+    #remove noise and dilate the image
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (2, 2))
+    combined = cv.erode(combined, kernel, iterations=1)
+    combined = cv.dilate(combined, kernel, iterations=1)
+
+    return combined
+
+#dilate the words and turn them into horizontal smudges.
+def dilate_words(img):
+
+    #self.dilated_image = cv2.dilate(self.thresholded_image, kernel_to_remove_gaps_between_words, iterations=5)
+    #simple_kernel = np.ones((5,5), np.uint8)
+    #self.dilated_image = cv2.dilate(self.dilated_image, simple_kernel, iterations=2)
+
+    # Create a kernel
+    kernel = np.array([
+        [1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1]
+    ])
+
+    dilated = cv.dilate(img, kernel, iterations=5)
+
+    simple_kernel = np.ones((5,5), np.uint8)
+    dilated = cv.dilate(dilated, simple_kernel, iterations=2)
+
+    return dilated
+
+# find all these smudges using the findContours method and draw them on the original image
+def find_words(img, path):
+    fresh = cv.imread(path)
+    result = cv.findContours(img, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+    contours = result[0] if len(result) == 2 else result[1]
+    
+    bounding_boxes = []
+    image_with_all_bounding_boxes = fresh.copy()
+
+    #Convert The Blobs Into Bounding Boxes : reduces it to a box that can fully enclose the contour shape
+    for contour in contours:
+        x, y, w, h = cv.boundingRect(contour)
+        bounding_boxes.append((x, y, w, h))
+        image_with_all_bounding_boxes = cv.rectangle(image_with_all_bounding_boxes, (x, y), (x+w, y+h), (0, 255, 0), 2)
+
+    #Draw The Bounding Boxes On The Original Image
+    for x, y, w, h in bounding_boxes:
+        fresh = cv.rectangle(fresh, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
 
+    return fresh
+
+# Process the image
 def process(path):
-    grayscale(path)
 
-    path = ppath(path)
+    # Read the image
+    img = cv.imread(path)
 
-    threshold(path)
-    invert(path)
-    dilate(path)
-    return path
+    # Convert the image to grayscale
+    img = grayscale(img)
 
-process("../temp/0.jpg")
+    # Threshold the image
+    img = threshold(img)
+
+    # Invert the image
+    img = invert(img)
+
+    # Dilate the image
+    img = dilate(img)
+
+    # Find the contours and apply perspective transform
+    img = perspective(img, path)
+
+    # Add padding to the image
+    img = add_padding(img, path)
+
+    # Erode the vertical lines
+    img = erode_lines(img)
+
+    # Dilate the words
+    img = dilate_words(img)
+
+    # Find the words
+    img = find_words(img, path)
+
+    cv.imshow("Processed Image", img)
+    cv.waitKey(0)
+
+    cv.imwrite(ppath(path), img)
+    return img

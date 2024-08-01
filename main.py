@@ -23,9 +23,16 @@ except FileNotFoundError:
 
 #Convert pdf to image
 log.log("Converting pdf to image", "info")
-if image.pdf_to_image(filename):
+num_pages, pdf_to_image = image.pdf_to_image(filename)
+if pdf_to_image:
     log.log("Pdf converted to image successfully", "success")
 else:
     sys.exit(1)
 
-proc.process("temp/0.jpg")
+# Process every image in the folder
+log.log("Processing images", "info")
+
+#get the number of pages in the pdf
+for i in range(num_pages):
+    log.log("Processing page "+str(i+1), "info")
+    proc.process("temp/"+str(i)+".jpg")

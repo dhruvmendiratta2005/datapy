@@ -11,7 +11,7 @@ def pdf_to_image(pdf_path):
 	except Exception as e:
 		log.log('Error converting pdf to image', 'error')
 		print(e)
-		return False
+		return [0, False]
 	
 	#save images to temporary folder
 	try:
@@ -29,8 +29,6 @@ def pdf_to_image(pdf_path):
 	except Exception as e:
 		log.log('Error saving image:', 'error')
 		print(e)
-		return False
+		return [0, False]
 	
-	return True
-	
-
+	return [len(images), True]
