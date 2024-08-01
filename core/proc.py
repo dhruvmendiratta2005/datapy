@@ -1,5 +1,6 @@
 import cv2 as cv
 import numpy as np
+import subprocess
 from modules import log
 
 def ppath(path):
@@ -222,7 +223,14 @@ def find_words(img, path):
     for x, y, w, h in bounding_boxes:
         fresh = cv.rectangle(fresh, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
+    #process the bounding boxes ocr
+    mean_height = get_mean_height_of_bounding_boxes(bounding_boxes)
+    bounding_boxes = sort_bounding_boxes_by_y_coordinate(bounding_boxes)
+    rows = club_all_bounding_boxes_by_similar_y_coordinates_into_rows(bounding_boxes, mean_height)
+    rows = sort_all_rows_by_x_coordinate(rows)
+    table = crop_each_bounding_box_and_ocr(rows, fresh)
 
+    print(table)
     return fresh
 
 #get_mean_height_of_bounding_boxes
@@ -232,7 +240,56 @@ def get_mean_height_of_bounding_boxes(bounding_boxes):
         heights.append(h)
     return np.mean(heights)
 
+#sort_bounding_boxes_by_y_coordinate
+def sort_bounding_boxes_by_y_coordinate(bounding_boxes):
+    return sorted(bounding_boxes, key=lambda x: x[1])
 
+#club_all_bounding_boxes_by_similar_y_coordinates_into_rows
+def club_all_bounding_boxes_by_similar_y_coordinates_into_rows(bounding_boxes, mean_height):
+    rows = []
+    half_of_mean_height = mean_height / 2
+    current_row = [bounding_boxes[0]]
+    for bounding_box in bounding_boxes[1:]:
+        current_bounding_box_y = bounding_box[1]
+        previous_bounding_box_y = current_row[-1][1]
+        distance_between_bounding_boxes = current_bounding_box_y - previous_bounding_box_y
+        if distance_between_bounding_boxes < half_of_mean_height:
+            current_row.append(bounding_box)
+        else:
+            rows.append(current_row)
+            current_row = [bounding_box]
+    rows.append(current_row)
+
+    return rows
+
+def sort_all_rows_by_x_coordinate(rows):
+    for row in rows:
+        row.sort(key=lambda x: x[0])
+    return rows
+
+def crop_each_bounding_box_and_ocr(rows, fresh):
+    table = []
+    current_row = []
+    image_number=0
+    for row in rows:
+        for bouding_box in row:
+            x, y, w, h = bouding_box
+            y = y - 5
+            cropped_image = fresh[y:y+h+5, x:x+w]
+            image_slice_path = "temp/$"+str(image_number)+".jpg"
+            cv.imwrite(image_slice_path, cropped_image)
+
+            results_from_ocr = ocr(image_slice_path)
+            current_row.append(results_from_ocr)
+            image_number += 1
+        table.append(current_row)
+        current_row = []
+    return table
+
+def ocr(image_path):
+    output = subprocess.getoutput('tesseract ' + image_path + ' - -l eng --oem 3 --psm 7 --dpi 72 -c tessedit_char_whitelist="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789().calmg* "')
+    output = output.strip()
+    return output
 
 
 # Process the image
@@ -279,4 +336,6 @@ def process(path):
     cv.waitKey(0)
 
     cv.imwrite(ppath(path), img)
+
+
     return img
