@@ -5,6 +5,9 @@ import shutil
 from werkzeug.utils import secure_filename
 from modules import log
 from table import image, proc, ocr
+import text
+import text.ocr
+import text.proc
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -61,13 +64,19 @@ def process_file(filename):
         processed.append(proc.process("temp/"+str(i)+".jpg"))
         log.log("Page "+str(i+1)+" processed successfully", "success")
 
-    log.log("Doing OCR", "info")
+    log.log("Doing OCR for tables", "info")
     for i in range(num_pages):
         log.log("Processing page "+str(i+1), "info")
         processed[i] = ocr.do("temp/"+str(i)+".jpg")
         log.log("Page "+str(i+1)+" processed successfully", "success")
 
     log.log("OCR done", "info")
+
+    log.log("Doing OCR for text", "info")
+    for i in range(num_pages):
+        log.log("Processing page "+str(i+1), "info")
+        text.proc.process("temp/"+str(i)+".jpg")
+        text.ocr.do("temp/"+str(i)+"$.jpg", "publish/page_"+str(i+1)+".docx")
 
     for file in os.listdir("temp"):
         os.remove("temp/"+file)
