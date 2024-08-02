@@ -1,23 +1,44 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="utf-8">
-    <title>Upload PDF</title>
-  </head>
-  <body>
-    <h1>Upload PDF</h1>
-    <form method="post" enctype="multipart/form-data" action="/upload">
-      <input type="file" name="file" accept=".pdf">
-      <button type="submit">Upload</button>
-    </form>
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <ul>
-          {% for message in messages %}
-            <li>{{ message }}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
-  </body>
+    <title>File Upload</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='stylesheets/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h3>Upload File</h3>
+            <div class="drop_box">
+                <header>
+                    <h4>Select File here</h4>
+                </header>
+                <p>Files Supported: PDF</p>
+                <form method="post" enctype="multipart/form-data" action="/upload">
+                    <input type="file" name="file" accept=".pdf" id="fileID" hidden style="display:none;">
+                    <a class="btn" id="chooseFileBtn" style="cursor: pointer;">Choose File</a>
+                      <button type="submit" class="btn" style="cursor: pointer; display: none;">Upload</button>
+                </form>
+            </div>
+        </div>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <ul>
+              {% for message in messages %}
+                <li>{{ message }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+    </div>
+    
+    <script>
+        document.getElementById('chooseFileBtn').addEventListener('click', function() {
+            document.getElementById('fileID').click();
+            
+            document.getElementById('chooseFileBtn').style.display = 'none';
+            document.querySelector('button').style.display = 'block';
+        });
+    </script>
+</body>
 </html>
