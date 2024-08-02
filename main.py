@@ -1,4 +1,4 @@
-import sys
+import sys, os
 from modules import log
 from table import image, proc, ocr
 
@@ -29,6 +29,14 @@ if num_pages > 0:
 else:
     sys.exit(1)
 
+#create folder 'publish' if it doesn't exist
+if not os.path.exists("publish"):
+    os.makedirs("publish")
+else:
+    #clear the folder
+    for file in os.listdir("publish"):
+        os.remove("publish/"+file)
+
 #--------------
 # PROCESSING TABLES IN THE IMAGE
 #--------------
@@ -52,3 +60,24 @@ for i in range(num_pages):
 
 log.log("OCR done", "info")
 #--------------
+
+#Delete the temp folder
+for file in os.listdir("temp"):
+    os.remove("temp/"+file)
+os.rmdir("temp")
+
+log.log("Temp folder deleted", "info")
+
+#--- zip the publish folder
+import shutil
+shutil.make_archive("publish", 'zip', "publish")
+log.log("Publish folder zipped", "info")
+
+#--- delete the publish folder
+for file in os.listdir("publish"):
+    os.remove("publish/"+file)
+os.rmdir("publish")
+
+log.log("Publish folder deleted", "info")
+
+log.log("Process completed", "success")

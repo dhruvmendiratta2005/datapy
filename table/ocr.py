@@ -1,7 +1,11 @@
+import os
 import cv2
 import numpy as np
 from img2table.document import Image
 from img2table.ocr import TesseractOCR
+import re
+
+from modules import log
 
 def process_image(image_path):
     # Load image, convert to grayscale, Gaussian blur, Otsu's threshold
@@ -74,7 +78,20 @@ def do(path):
     # Table identification and extraction
     img_tables = img.extract_tables(ocr=ocr)
 
+    #get int from string path
+    numbers = re.findall(r'\d+', path)
+    # Join the sequences into a single string
+    concatenated_numbers = ''.join(numbers)
+
+
     # Display the extracted tables. There is a pandas DataFrame representation of the table so you can just get its shape table.df.shape
+    i = 0
     for table in img_tables:
         print(table.df)
         print(table.df.shape)
+        table.df.to_csv(f"publish\\page_{int(concatenated_numbers)+1}_table_{i}.csv", index=False)
+        log.log("Table saved to publish folder", "success")
+        i += 1
+
+    return True
+    
